@@ -3,7 +3,9 @@
 #include "driver/ledc.h"
 #include "driver/timer.h"
 
-#define SAMPLE_RATE 40000
+#include "pitch2frq.h"
+
+#define SAMPLE_RATE 40000 // Weird! I know... but it makes sense pitch-wise
 #define NUM_CHANNELS 6
 #define PWM_RESOLUTION 10
 #define PWM_FREQUENCY 78125
@@ -18,18 +20,18 @@ const int pwm_pins[NUM_CHANNELS] = { 2, 4, 16, 17, 5, 18 }; // Example pins, cha
 static intr_handle_t s_timer_handle;
 
 uint32_t phase = 0;
-uint32_t frq = 1 << 13;
+uint32_t frq = pitchToFrequency((9 + 12*3) << 16); // A4 ?
 uint16_t out = 0;
 
 void IRAM_ATTR timer_isr(void *para) {
 
 
     phase += frq;
-    out = (phase >> 16) & 0x07FF;
+    out = (phase >> 10) & 0x03FF;
 
-    /*if (out > 511) {
+    if (out > 511) {
         out = 1023 - out; // Reflect over the midpoint for falling edge
-    }*/
+    }
 
     ledc_set_duty(LEDC_HIGH_SPEED_MODE, LEDC_CHANNEL_0, out);
     ledc_update_duty(LEDC_HIGH_SPEED_MODE, LEDC_CHANNEL_0);
@@ -81,6 +83,4 @@ void setup() {
 
 
 void loop() {
-    frq += 1 << 10;
-    delay(1);
 }
